@@ -58,10 +58,10 @@ class Subscription extends Model
                 throw new \Exception('Bundle not found.');
             }
 
-            if ($bundle->stock <= 0) {
-                Log::error('Subscription creation failed: Insufficient bundle stock.', ['bundle_id' => $subscription->bundle_id]);
-                throw new \Exception('Subscription creation failed due to insufficient bundle stock.');
-            }
+            // if ($bundle->stock <= 0) {
+            //     Log::error('Subscription creation failed: Insufficient bundle stock.', ['bundle_id' => $subscription->bundle_id]);
+            //     throw new \Exception('Subscription creation failed due to insufficient bundle stock.');
+            // }
 
             // Reduce stock
             $bundle->update([
