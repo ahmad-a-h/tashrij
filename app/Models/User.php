@@ -24,6 +24,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasName
         'is_admin',
         'password',
         'admin_create',
+        'balance',
     ];
 
 
@@ -54,5 +55,32 @@ class User extends Authenticatable implements FilamentUser, HasAvatar, HasName
     public function subscriptions()
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    /**
+     * Get all topups for the user.
+     */
+    public function topups()
+    {
+        return $this->hasMany(Topup::class);
+    }
+
+    /**
+     * Check if user has enough balance for a given amount
+     */
+    public function hasEnoughBalance($amount)
+    {
+        return $this->balance >= $amount;
+    }
+
+    /**
+     * Add balance to user account
+     */
+    public function addBalance($amount)
+    {
+        $this->balance += $amount;
+        $this->save();
+        
+        return $this;
     }
 }

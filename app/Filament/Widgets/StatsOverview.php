@@ -2,43 +2,71 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\User;
+use App\Models\Cycle;
 use App\Models\Bundle;
-use App\Models\CycleBundle;
 use App\Models\Subscription;
-use Illuminate\Support\Facades\DB;
 use Filament\Widgets\StatsOverviewWidget\Card;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
-use App\Models\Cycle;
-
 
 class StatsOverview extends BaseWidget
 {
     protected function getCards(): array
     {
-        $currentCycleId = Cycle::where('end_date', '>', now())->value('id');
-    
-        $outOfStockBundles = CycleBundle::where('cycle_id', $currentCycleId)
-            ->where('is_In_Stock', false) 
-            ->with('bundle')
-            ->get();
-    
+        $currentUser = auth()->user();
         $cards = [];
-        foreach ($outOfStockBundles as $cycleBundle) {
-            $cards[] = Card::make(
-                'Out of Stock',
-                $cycleBundle->bundle->name
-            );
-        }
-    
+        
+        // Add user stats
+        $cards[] = Card::make('Balance', number_format($currentUser->balance, 2))
+            ->description('Available credit')
+            ->descriptionIcon('heroicon-s-credit-card')
+            ->chart([7, 3, 4, 5, 6, 3, 5, 3])
+            ->color('success');
+
+        $activeSubscriptions = Subscription::where('user_id', $currentUser->id)
+            ->whereIn('cycle_id', function ($query) {
+                $query->select('id')
+                    ->from('cycles')
+                    ->where('end_date', '>', now());
+            })
+            ->where('is_approve', 1)
+            ->count();
+
+        $cards[] = Card::make('Subscriptions', $activeSubscriptions)
+            ->description('Active plans')
+            ->descriptionIcon('heroicon-s-collection')
+            ->chart([2, 3, 3, 3, 4, 3, 4, $activeSubscriptions])
+            ->color('primary');
+
+        $totalCost = Subscription::query()
+            ->join('bundles', 'subscriptions.bundle_id', '=', 'bundles.id')
+            ->where('subscriptions.user_id', $currentUser->id)
+            ->where('subscriptions.is_approve', 1)
+            ->whereIn('subscriptions.cycle_id', function ($query) {
+                $query->select('id')
+                    ->from('cycles')
+                    ->where('end_date', '>', now());
+            })
+            ->sum('bundles.price');
+
+        $cards[] = Card::make('Total Cost', number_format($totalCost, 2))
+            ->description('Current cycle')
+            ->descriptionIcon('heroicon-s-currency-dollar')
+            ->chart([0, 2, 4, 6, 8, 10, 8, $totalCost])
+            ->color('warning');
+
         return $cards;
     }
     
     /**
-     * Define a 4-column layout for the cards
+     * Define columns layout for different screen sizes
      */
-    protected function getColumns(): int
-    {
-        return 4; // Set 4 cards per row
-    }
-    
+    // protected function getColumns(): int|array
+    // {
+    //     return [
+    //         'sm' => 1,    // 1 column on mobile
+    //         'md' => 2,    // 2 columns on tablet
+    //         'lg' => 3,    // 3 columns on desktop
+    //     ];
+    // }
 }

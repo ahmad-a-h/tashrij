@@ -13,7 +13,9 @@ class Subscription extends Model
 
     protected $fillable = [
         'cycle_id', 'bundle_id', 'user_id', 'phone_number', 
-        'verification_code', 'note', 'is_approve', 'is_karim', 'is_paid'
+        'verification_code', 'note', 'is_approve', 'is_karim', 'is_paid',
+        'paid_with_balance',  // boolean to track if paid with account balance
+        'transaction_id',     // reference to transaction record if needed
     ];
 
     // ✅ Fixed: Corrected belongsTo method name
@@ -36,7 +38,7 @@ class Subscription extends Model
     {
         return $this->belongsTo(CycleBundle::class);
     }
-
+ 
     // Get price attribute dynamically
     public function getPriceAttribute()
     {
@@ -70,5 +72,38 @@ class Subscription extends Model
 
             Log::info('Subscription successfully created', ['subscription_id' => $subscription->id]);
         });
+
+        static::updating(function ($subscription) {
+            Log::info('Updating subscription', [
+                'id' => $subscription->id,
+                'changes' => $subscription->getDirty()
+            ]);
+        });
+
+        static::updated(function ($subscription) {
+            Log::info('Subscription successfully updated', ['subscription_id' => $subscription->id]);
+        });
+    }
+
+    /**
+     * Process payment using user balance
+     */
+    public function payWithBalance()
+    {
+        $user = $this->user;
+        $price = $this->price; // Assuming subscription has a price field
+        
+        if (!$user->hasEnoughBalance($price)) {
+            return false;
+        }
+        
+        // Deduct balance
+        $user->balance -= $price;
+        $user->save();
+        
+        $this->paid_with_balance = true;
+        $this->save();
+        
+        return true;
     }
 }

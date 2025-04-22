@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 use App\Filament\Resources\SubscriptionCostResource\Pages;
+use App\Filament\Resources\SubscriptionCostResource\Widgets\StatsOverview;
 
 class SubscriptionCostResource extends Resource
 {
@@ -85,6 +86,13 @@ class SubscriptionCostResource extends Resource
     {
         return [
             'index' => Pages\ListSubscriptionCosts::route('/'),
+        ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            StatsOverview::class,
         ];
     }
 
