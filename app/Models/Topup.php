@@ -11,11 +11,55 @@ class Topup extends Model
 
     protected $fillable = [
         'user_id',
+        'admin_id',
         'amount',
         'description',
-        'admin_id', // ID of admin who created the topup
-        'status'    // e.g., 'pending', 'completed', 'failed'
+        'status'
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        // When creating a new topup
+        static::created(function ($topup) {
+            if ($topup->status === 'completed') {
+                $user = $topup->user;
+                $user->balance += $topup->amount;
+                $user->save();
+            }
+        });
+
+        // Before updating, store the original amount
+        static::updating(function ($topup) {
+            if ($topup->status === 'completed') {
+                // Store the original amount to use in updated event
+                $topup->original_amount = $topup->getOriginal('amount');
+            }
+        });
+
+        // After updating
+        static::updated(function ($topup) {
+            if ($topup->status === 'completed') {
+                $user = $topup->user;
+                // Subtract the old amount and add the new amount
+                if (isset($topup->original_amount)) {
+                    $user->balance -= $topup->original_amount;
+                    $user->balance += $topup->amount;
+                    $user->save();
+                }
+            }
+        });
+
+        // When deleting a topup
+        static::deleting(function ($topup) {
+            if ($topup->status === 'completed') {
+                $user = $topup->user;
+                $user->balance -= $topup->amount;
+                $user->save();
+            }
+        });
+    }
 
     /**
      * Get the user that owns the topup.

@@ -18,16 +18,6 @@ class CreateTopup extends CreateRecord
         return $data;
     }
 
-    protected function afterCreate(): void
-    {
-        // Get the user and update their balance
-        $user = User::find($this->record->user_id);
-        if ($user && $this->record->status === 'completed') {
-            $user->balance += $this->record->amount;
-            $user->save();
-        }
-    }
-
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

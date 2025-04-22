@@ -17,11 +17,11 @@ class StatsOverview extends BaseWidget
         $cards = [];
         
         // Add user stats
-        $cards[] = Card::make('Balance', number_format($currentUser->balance, 2))
-            ->description('Available credit')
-            ->descriptionIcon('heroicon-s-credit-card')
-            ->chart([7, 3, 4, 5, 6, 3, 5, 3])
-            ->color('success');
+        $cards[] = Card::make('Balance', 'LBP ' . number_format($currentUser->balance, 0, '.', ','))
+    ->description('Raw value: ' . $currentUser->balance) // Add this line to see the raw value
+    ->descriptionIcon('heroicon-s-credit-card')
+    ->chart([7, 3, 4, 5, 6, 3, 5, 3])
+    ->color('success');
 
         $activeSubscriptions = Subscription::where('user_id', $currentUser->id)
             ->whereIn('cycle_id', function ($query) {

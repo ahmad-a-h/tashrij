@@ -43,7 +43,11 @@ class TopupResource extends Resource
                             ->required()
                             ->numeric()
                             ->minValue(0)
-                            ->prefix('LBP'),
+                            ->prefix('LBP')
+                            ->mask(fn (TextInput\Mask $mask) => $mask
+                                ->numeric()
+                                ->thousandsSeparator(',')
+                            ),
                         
                         TextInput::make('description')
                             ->label('Description')
@@ -55,10 +59,15 @@ class TopupResource extends Resource
                             ->options([
                                 'completed' => 'Completed',
                                 'pending' => 'Pending',
-                                'failed' => 'Failed',
+                                'cancelled' => 'Cancelled',
                             ])
                             ->default('completed')
                             ->required(),
+
+                        TextInput::make('admin_id')
+                            ->label('Admin ID')
+                            ->default(fn () => auth()->id())
+                            ->hidden(),
                     ])
             ]);
     }
@@ -72,8 +81,9 @@ class TopupResource extends Resource
                     ->sortable()
                     ->searchable(),
                 
-                TextColumn::make('amount')
-                    ->money('USD')
+                    TextColumn::make('amount')
+                    ->label('Amount')
+                    ->formatStateUsing(fn ($state) => 'LBP ' . number_format($state, 0, '.', ','))
                     ->sortable(),
                 
                 TextColumn::make('admin.name')
@@ -94,7 +104,7 @@ class TopupResource extends Resource
                     ->colors([
                         'success' => 'completed',
                         'warning' => 'pending',
-                        'danger' => 'failed',
+                        'danger' => 'cancelled',
                     ]),
                 
                 TextColumn::make('created_at')
@@ -107,7 +117,7 @@ class TopupResource extends Resource
                     ->options([
                         'completed' => 'Completed',
                         'pending' => 'Pending',
-                        'failed' => 'Failed',
+                        'cancelled' => 'Cancelled',
                     ]),
                 SelectFilter::make('user')
                     ->relationship('user', 'name'),
