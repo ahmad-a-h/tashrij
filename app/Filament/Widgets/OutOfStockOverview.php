@@ -47,21 +47,18 @@ class OutOfStockOverview extends BaseWidget
     /**
      * Define columns layout for different screen sizes
      */
-    // protected function getColumns(): int|array
-    // {
-    //     return [
-    //         'sm' => 1,    // 1 column on mobile
-    //         'md' => 2,    // 2 columns on tablet
-    //         'lg' => 3,    // 3 columns on desktop
-    //         'xl' => 4,    // 4 columns on large desktop
-    //     ];
-    // }
+    protected function getColumns(): int
+    {
+        // Since the parent class only accepts int, we'll use a fixed number of columns
+        // that works well for most screens
+        return 4; // Show 4 columns
+    }
 
     /**
      * Set the maximum width of the widget
      */
     protected static function getMaxWidth(): string
     {
-        return '2xl';
+        return 'full';  // Changed to full width to accommodate more columns
     }
-} 
+}

@@ -23,12 +23,15 @@ class AppServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function boot()
+    public function boot(): void
     {
+        \App\Models\Refund::observe(\App\Observers\RefundObserver::class);
         Filament::serving(function () {
             Filament::registerNavigationGroups([
                 NavigationGroup::make('Subscriptions')
                     ->label('Subscriptions'),
+                NavigationGroup::make('Finance')
+                    ->label('Finance'),
                 NavigationGroup::make('User Management')
                      ->label('User Management'),
             ]);

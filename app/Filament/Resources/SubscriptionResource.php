@@ -45,18 +45,23 @@ class SubscriptionResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         if (auth()->user()->id && !auth()->user()->is_admin) {
-
-            return static::getModel()::query()->where('user_id', auth()->user()->id)->orderBy("id", 'desc')
+            return static::getModel()::query()
+                ->where('user_id', auth()->user()->id)
+                ->where('is_deleted', false)
+                ->orderBy("id", 'desc')
                 ->whereIn('cycle_id', function ($query) {
                     $query->select('id')->from('cycles')->where('end_date', '>', now());
                 });
         } else {
             if (auth()->user()->hasRole('show-archive')) {
-                return static::getModel()::query();
+                return static::getModel()::query()->where('is_deleted', false);
             } else {
-                return static::getModel()::query()->orderBy("id", 'desc')->whereIn('cycle_id', function ($query) {
-                    $query->select('id')->from('cycles')->where('end_date', '>', now());
-                });
+                return static::getModel()::query()
+                    ->where('is_deleted', false)
+                    ->orderBy("id", 'desc')
+                    ->whereIn('cycle_id', function ($query) {
+                        $query->select('id')->from('cycles')->where('end_date', '>', now());
+                    });
             }
         }
     }
@@ -99,6 +104,8 @@ class SubscriptionResource extends Resource
                             TextInput::make('user_update')->hidden()->default(fn (callable $set) => $set('user_update', auth()->user()->id))
                                 ->disabled(),
                             Toggle::make('is_approve')->default(0),
+                            Hidden::make('paid_with_balance')->default(false),
+                            Hidden::make('transaction_id'),
                         ])
                 ]);
         } else {
@@ -133,7 +140,8 @@ class SubscriptionResource extends Resource
                             TextInput::make('note')->hidden($isEditPage),
                             Toggle::make('is_paid')->default(null),
                             Toggle::make('is_approve')->hidden()->default(0),
-
+                            Hidden::make('paid_with_balance')->default(false),
+                            Hidden::make('transaction_id'),
                         ])
                 ]);
         }
@@ -153,7 +161,6 @@ class SubscriptionResource extends Resource
                     TextColumn::make('verification_code')->searchable(),
                     TextColumn::make('note'),
                     BooleanColumn::make('is_approve')->searchable(),
-
                 ])
 
                 ->filters([
@@ -165,7 +172,16 @@ class SubscriptionResource extends Resource
                 ])
                 ->actions([
                     Tables\Actions\EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->requiresConfirmation()
+                        ->modalHeading('Delete Subscription')
+                        ->modalSubheading(fn (Subscription $record) => 
+                            $record->paid_with_balance
+                                ? "You are about to delete this subscription.\n\n" .
+                                  "💰 Refund Amount: LBP " . number_format($record->bundle->price, 0, '.', ',') . "\n" .
+                                  "This amount will be credited back to the user's balance."
+                                : "Are you sure you want to delete this subscription?")
+                        ->modalButton('Yes, delete and refund')
                 ])
                 ->bulkActions([
                     Tables\Actions\DeleteBulkAction::make(),
@@ -192,7 +208,16 @@ class SubscriptionResource extends Resource
                 ])
                 ->actions([
                     Tables\Actions\EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->requiresConfirmation()
+                        ->modalHeading('Delete Subscription')
+                        ->modalSubheading(fn (Subscription $record) => 
+                            $record->paid_with_balance
+                                ? "You are about to delete this subscription.\n\n" .
+                                  "💰 Refund Amount: LBP " . number_format($record->bundle->price, 0, '.', ',') . "\n" .
+                                  "This amount will be credited back to the user's balance."
+                                : "Are you sure you want to delete this subscription?")
+                        ->modalButton('Yes, delete and refund')
                 ])
                 ->bulkActions([
                     Tables\Actions\DeleteBulkAction::make(),
