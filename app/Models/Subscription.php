@@ -74,14 +74,30 @@ class Subscription extends Model
         });
 
         static::updating(function ($subscription) {
-            Log::info('Updating subscription', [
+            $changes = $subscription->getDirty();
+            Log::info('Subscription update started', [
                 'id' => $subscription->id,
-                'changes' => $subscription->getDirty()
+                'changes' => $changes,
+                'original' => $subscription->getOriginal(),
+                'current_user' => auth()->user()->id,
+                'is_admin' => auth()->user()->hasRole(['admin', 'super-admin']),
+                'bundle_changed' => isset($changes['bundle_id'])
             ]);
+
+            if (isset($changes['bundle_id'])) {
+                Log::info('Bundle change detected', [
+                    'old_bundle_id' => $subscription->getOriginal('bundle_id'),
+                    'new_bundle_id' => $subscription->bundle_id,
+                    'user_id' => $subscription->user_id
+                ]);
+            }
         });
 
         static::updated(function ($subscription) {
-            Log::info('Subscription successfully updated', ['subscription_id' => $subscription->id]);
+            Log::info('Subscription successfully updated', [
+                'subscription_id' => $subscription->id,
+                'final_state' => $subscription->toArray()
+            ]);
         });
     }
 
