@@ -18,7 +18,10 @@ class EditSubscription extends EditRecord
     protected function getActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->after(function () {
+                    return redirect($this->getResource()::getUrl('index'));
+                }),
         ];
     }
 

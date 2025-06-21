@@ -44,8 +44,41 @@ class CreateSubscription extends CreateRecord
                 $this->halt();
             }
 
-            // Deduct the balance if validation passes
+            // Deduct the balance
             $user->addBalance(-$bundle->price);
+            
+            // Set the paid_with_balance in the data
+            $data['paid_with_balance'] = true;
+            $data['transaction_id'] = 'BAL-' . time();  // We'll append the ID after creation
+            $this->data = $data;  // Update the form data
+        }
+    }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        if (!auth()->user()->hasRole(['admin', 'super-admin'])) {
+            $data['paid_with_balance'] = true;
+            $data['transaction_id'] = 'BAL-' . time();  // We'll update this with the ID after creation
+        }
+        return $data;
+    }
+
+    protected function afterCreate(): void
+    {
+        $subscription = $this->record;
+        
+        // Update transaction ID with the subscription ID if paid with balance
+        if ($subscription->paid_with_balance) {
+            $subscription->transaction_id = $subscription->transaction_id . '-' . $subscription->id;
+            $subscription->save();
+            
+            // Log the transaction
+            \Illuminate\Support\Facades\Log::info('Payment processed with balance', [
+                'user_id' => auth()->id(),
+                'subscription_id' => $subscription->id,
+                'amount' => $subscription->bundle->price,
+                'transaction_id' => $subscription->transaction_id
+            ]);
         }
     }
 }
